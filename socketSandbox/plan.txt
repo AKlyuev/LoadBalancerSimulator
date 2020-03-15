@@ -1,0 +1,15 @@
+To run the server client combo, run python3 server.py in one terminal, then python3 client.py in another.
+Note that if you quit the server, you need to wait a bit for the port to become free again to rerun the server.
+
+
+
+Currently, we have: a server file and a client file that can connect to each other. The way they connect is by having the client specify the port number of the server it wants to connect to. 
+
+We want:
+
+- Multiple clients
+- Multiple servers
+- 1 or more load balancer files that the clients connect to, and then decide which server the client will connect to. 
+- A way to collect metrics on how long this takes and how accurate it is. 
+
+
