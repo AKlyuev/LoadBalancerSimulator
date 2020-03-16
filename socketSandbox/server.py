@@ -14,7 +14,8 @@ connection.bind((socket.gethostname(), 8000))
 connection.listen(5)
 
 while True:
-	#identifies a connection request and returns the socket object and the address of the socket trying to connect
 	connectedsocket, address = connection.accept()
 	print("Connection from {address} established".format(address = address))
 	connectedsocket.send(bytes("First message", "utf-8"))
+
+	

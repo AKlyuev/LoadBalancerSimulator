@@ -1,7 +1,8 @@
 To run the server client combo, run python3 server.py in one terminal, then python3 client.py in another.
 Note that if you quit the server, you need to wait a bit for the port to become free again to rerun the server.
 
-
+Look at this link for a the tutorial I got most of my info from: 
+https://medium.com/swlh/creating-a-simple-router-simulation-using-python-and-sockets-d6017b441c09
 
 Currently, we have: a server file and a client file that can connect to each other. The way they connect is by having the client specify the port number of the server it wants to connect to. 
 
