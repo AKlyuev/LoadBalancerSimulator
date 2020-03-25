@@ -154,7 +154,7 @@ for server in servers:
 	plt.xlabel('Time')
 	plt.ylabel('Load (Time til finish)')
 	plt.title('Load vs. Time for Server ' + str(server.id))
-	plt.savefig('LoadVsTimeForServer' + str(server.id) + '.png')
+	plt.savefig('plots/LoadVsTimeForServer' + str(server.id) + '.png')
 	plt.clf()
 
 # Per-Flow Consistency Check:
