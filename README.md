@@ -9,4 +9,6 @@ To pull the codebase from github and run the simulation, <br/>
 <code>cd LoadBalancerSimulator/ </code> <br/>
 <code>python3 main.py </code> <br/>
 
-<i>Simulation parameters can be changed by editting the file <code>main.py</code>.</i>
+<i>Simulation parameters can be changed by editting the file <code>main.py</code>.</i> <br/> <br/>
+
+Plots output by the simulation be viewed in the <code>plots/</code> directory.
