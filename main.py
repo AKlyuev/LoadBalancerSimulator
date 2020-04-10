@@ -11,14 +11,14 @@ processing_time = 0.005 # time per packet
 '''
 
 # Packet generation variables
-num_flows = 8
+num_flows = 30
 mean_flow_size = 10
 flow_size_stdev = 2
 max_flow_duration = 0.05
 # Num clients, load balancers, servers
-num_clients = 4
+num_clients = 20
 num_load_balancers = 2
-num_servers = 2
+num_servers = 3
 # Server processing time, time per packet
 processing_time = 0.005
 
@@ -34,7 +34,7 @@ processing_time = 0.01 # time per packet
 '''
 
 
-assignment_methods = ["RandomAssignment", "ConsistentHashing", "PowersOfTwoNoMemory", "PowersOfTwoWithMemory"]
+assignment_methods = ["RandomAssignment", "ConsistentHashing", "PowersOfTwoNoMemory", "PowersOfTwoWithMemory", "PowersOfXWithMemory"]
 
 #class defining a client/host
 class Client:
@@ -47,14 +47,14 @@ class LoadBalancer:
 		self.id = address
 		self.connection_table = {}
 
-	def assign_server_random(self, packet, _):
+	def assign_server_random(self, packet, _1, _2):
 		packet_id = packet.clientid
 		return random.randint(0, num_servers - 1)
 
-	def assign_server_hashing(self, packet, _):
+	def assign_server_hashing(self, packet, _1, _2):
 		return hash(str(packet.clientid)) % num_servers
 
-	def assign_server_power_of_2_choices_no_memory(self, packet, servers):
+	def assign_server_power_of_2_choices_no_memory(self, packet, servers, _):
 
 		#pick 2 servers randomly
 		first_query_server = random.randint(0, num_servers - 1)
@@ -73,7 +73,7 @@ class LoadBalancer:
 			return first_query_server
 		return second_query_server
 
-	def assign_server_power_of_2_choices_with_memory(self, packet, servers):
+	def assign_server_power_of_2_choices_with_memory(self, packet, servers, _):
 		#check this is a new flow by checking client id 
 		if packet.clientid in self.connection_table:
 			return self.connection_table[packet.clientid]
@@ -96,6 +96,27 @@ class LoadBalancer:
 			return first_query_server
 		self.connection_table[packet.clientid] = second_query_server
 		return second_query_server
+
+
+
+	def assign_server_power_of_x_choices_with_memory(self, packet, servers, x):
+		#check this is a new flow by checking client id 
+		if packet.clientid in self.connection_table:
+			return self.connection_table[packet.clientid]
+
+		if x > num_servers:
+			print("Number of servers too low for power of " + str(x) + " choices.")
+			return
+
+		#pick x servers randomly
+		server_nums = random.sample(range(0, num_servers), x)
+		loads = []
+		for num in server_nums:
+			loads.append(servers[num].get_load(packet.time_sent))
+
+		min_load_server = loads.index(min(loads))
+		self.connection_table[packet.clientid] = min_load_server
+		return min_load_server
 
 	def __repr__(self):
 		return "Load Balancer id: " + str(self.id)	
@@ -229,10 +250,11 @@ def run_simulation(assignment_method):
 			"RandomAssignment": load_balancer.assign_server_random,  # No per-flow consistency :(
 			"ConsistentHashing": load_balancer.assign_server_hashing, # Per-flow consistency :)
 			"PowersOfTwoNoMemory": load_balancer.assign_server_power_of_2_choices_no_memory, # No Per-flow consistency :( + Congestion control :)
-			"PowersOfTwoWithMemory": load_balancer.assign_server_power_of_2_choices_with_memory # Per-flow consistency :) + Congestion control :) 
+			"PowersOfTwoWithMemory": load_balancer.assign_server_power_of_2_choices_with_memory, # Per-flow consistency :) + Congestion control :) 
+			"PowersOfXWithMemory": load_balancer.assign_server_power_of_x_choices_with_memory # Per-flow consistency :) + Congestion control :) 
 		}
 		func = switcher.get(assignment_method, lambda: "Invalid assignment method")
-		server_id = func(packet, servers)
+		server_id = func(packet, servers, 3)
 		server = servers[server_id]
 		server.add_packet(packet)
 		#print("Load Balancer " + str(lb_id) + " sent packet from client " + str(packet.clientid) + " to server " + str(server_id))
