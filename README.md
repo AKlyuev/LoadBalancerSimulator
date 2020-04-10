@@ -5,10 +5,8 @@ A program that simulates packets being sent from clients through load-balancers 
 # Quickstart
 
 To pull the codebase from github and run the simulation, <br/>
-<code>
-git clone https://github.com/AKlyuev/LoadBalancerSimulator.git \n
-cd LoadBalancerSimulator/ \n
-py main.py \n
-</code>
+<code>git clone https://github.com/AKlyuev/LoadBalancerSimulator.git</code> <br/>
+<code>cd LoadBalancerSimulator/ </code> <br/>
+<code>py main.py </code> <br/>
 
 <i>Simulation parameters can be changed by editting the file <code>main.py</code>.</i>
