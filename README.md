@@ -2,7 +2,7 @@
 
 A program that simulates packets being sent from clients through load-balancers to servers, allowing the testing of various load balancing techniques. 
 
-# Quickstart
+# Quickstart Instructions
 
 To pull the codebase from github and run the simulation, <br/>
 <code>git clone https://github.com/AKlyuev/LoadBalancerSimulator.git</code> <br/>
