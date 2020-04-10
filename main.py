@@ -11,14 +11,14 @@ processing_time = 0.005 # time per packet
 '''
 
 # Packet generation variables
-num_flows = 100
+num_flows = 1000
 mean_flow_size = 10
 flow_size_stdev = 2
 max_flow_duration = 0.05
 # Num clients, load balancers, servers
-num_clients = 20
+num_clients = 200
 num_load_balancers = 2
-num_servers = 3
+num_servers = 16
 # Server processing time, time per packet
 processing_time = 0.005
 
@@ -188,7 +188,6 @@ def run_plotter(servers, assignment_method):
 			times.append(t)
 			loads.append(load)
 
-		
 		plt.plot(np.array([x for x in times]), np.array([y for y in loads]), label = server.id) # , s=5
 		plt.xlabel('Time')
 		plt.ylabel('Load (Time til finish)')
@@ -198,20 +197,43 @@ def run_plotter(servers, assignment_method):
 	plt.savefig('plots/SmallSystemWithFlows/' + assignment_method + '/LoadVsTimeForServers.png')
 	plt.clf()
 
-### Doesn't account for expired flows
-# def run_consistency_check(servers):
-# 	perFlowConsistent = True
-# 	for server in servers:
-# 		for otherServer in servers:
-# 			if server.id != otherServer.id:
-# 				for packet in server.packet_history:
-# 					if packet.clientid in [pckt.clientid for pckt in otherServer.packet_history]:
-# 						perFlowConsistent = False
-# 						break
-# 	if perFlowConsistent:
-# 		print("Per-Flow Consistency Maintained")
-# 	else:
-# 		print("Per-Flow Consistency Not Maintained")
+def run_consistency_check(servers):
+	perFlowConsistent = True
+	conflicting_packets = []
+	for server in servers:
+		for otherServer in servers:
+			if server.id != otherServer.id:
+				clients_both_servers = list(set([packet.clientid for packet in server.packet_history]) & set([packet.clientid for packet in otherServer.packet_history]))
+
+				packets_both_servers = []
+				for packet in server.packet_history:
+					packets_both_servers.append([packet.clientid, packet.time_sent, server.id])
+				for packet in otherServer.packet_history:
+					packets_both_servers.append([packet.clientid, packet.time_sent, otherServer.id])
+				packets_both_servers.sort(key=lambda x: x[1], reverse=False)
+
+				for client in clients_both_servers:
+					lastServer = None
+					lastTime = None
+					for packet in packets_both_servers:
+						if packet[0] == client:
+							if lastServer is None:
+								lastServer = packet[2]
+							else:
+								if packet[2] != lastServer:
+									if packet[1] - lastTime < max_flow_duration:
+										perFlowConsistent = False
+										# conflicting_packets.append([(client, lastServer, round(lastTime, 3), round(packet[1], 3), packet[2])])
+										lastServer = packet[2]
+							lastTime = packet[1]
+
+	if perFlowConsistent:
+		print("Per-Flow Consistency Maintained")
+	else:
+		print("Per-Flow Consistency Not Maintained")
+		# print("Flow Inconsistent Packets:")
+		# for packet in conflicting_packets:
+		# 	print(packet)
 
 
 def run_simulation(assignment_method):
@@ -258,7 +280,7 @@ def run_simulation(assignment_method):
 			"PowersOfXWithMemory": load_balancer.assign_server_power_of_x_choices_with_memory # Per-flow consistency :) + Congestion control :) 
 		}
 		func = switcher.get(assignment_method, lambda: "Invalid assignment method")
-		server_id = func(packet, servers, 3)
+		server_id = func(packet, servers, 2)
 		server = servers[server_id]
 		server.add_packet(packet)
 		#print("Load Balancer " + str(lb_id) + " sent packet from client " + str(packet.clientid) + " to server " + str(server_id))
