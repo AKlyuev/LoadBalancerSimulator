@@ -9,11 +9,30 @@ num_load_balancers = 2
 num_servers = 4
 processing_time = 0.005 # time per packet
 '''
+
+# Packet generation variables
+num_flows = 8
+mean_flow_size = 10
+flow_size_stdev = 2
+max_flow_duration = 0.05
+# Num clients, load balancers, servers
+num_clients = 4
+num_load_balancers = 2
+num_servers = 2
+# Server processing time, time per packet
+processing_time = 0.005
+
+
+'''
+mean_flow_size = 98
+
 num_clients = 1000
 packets_per_client = 10
 num_load_balancers = 10
 num_servers = 100
 processing_time = 0.01 # time per packet
+'''
+
 
 assignment_methods = ["RandomAssignment", "ConsistentHashing", "PowersOfTwoNoMemory", "PowersOfTwoWithMemory"]
 
@@ -139,7 +158,7 @@ def run_plotter(servers, assignment_method):
 		#print(server)
 		times = []
 		loads = []
-		for t in [x/100 for x in range(1, 100)]:
+		for t in [x/250 for x in range(1, 250)]:
 			load = server.get_load(t)
 			# print("Load at time", t, "is", round(load, 3))
 			times.append(t)
@@ -150,8 +169,9 @@ def run_plotter(servers, assignment_method):
 		plt.xlabel('Time')
 		plt.ylabel('Load (Time til finish)')
 		plt.title('Load vs. Time for Servers')
+		# plt.axis([0, 1, 0, 1])
 
-	plt.savefig('plots/BiggerSystem/' + assignment_method + '/LoadVsTimeForServers.png')
+	plt.savefig('plots/SmallSystemWithFlows/' + assignment_method + '/LoadVsTimeForServers.png')
 	plt.clf()
 
 def run_consistency_check(servers):
@@ -174,11 +194,22 @@ def run_simulation(assignment_method):
 
 	# Initialization Steps
 	packets = []
-	for i in range(num_clients):
-		for j in range(packets_per_client):
-			packet = Packet(i, random.random())
+	for i in range(num_flows):
+		num_packets_in_flow = int(np.random.normal(mean_flow_size, flow_size_stdev))
+		client_of_flow = random.randint(0, num_clients-1)
+		time_of_flow = random.random()
+		for j in range(num_packets_in_flow):
+			time_of_packet = time_of_flow + (random.random() * (max_flow_duration) - max_flow_duration / 2)
+			packet = Packet(client_of_flow, time_of_packet)
 			packets.append(packet)
 	packets.sort(key=lambda x: x.time_sent, reverse=False)
+
+	# packets = []
+	# for i in range(num_clients):
+	# 	for j in range(packets_per_client):
+	# 		packet = Packet(i, random.random())
+	# 		packets.append(packet)
+	# packets.sort(key=lambda x: x.time_sent, reverse=False)
 
 	load_balancers = []
 	for i in range(num_load_balancers):
@@ -208,7 +239,6 @@ def run_simulation(assignment_method):
 
 	run_plotter(servers, assignment_method)
 	run_consistency_check(servers)
-
 
 for method in assignment_methods:
 	run_simulation(method)
