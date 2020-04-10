@@ -2,11 +2,18 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 
+'''
 num_clients = 80
 packets_per_client = 10
 num_load_balancers = 2
 num_servers = 4
 processing_time = 0.005 # time per packet
+'''
+num_clients = 1000
+packets_per_client = 10
+num_load_balancers = 10
+num_servers = 100
+processing_time = 0.01 # time per packet
 
 assignment_methods = ["RandomAssignment", "ConsistentHashing", "PowersOfTwoNoMemory", "PowersOfTwoWithMemory"]
 
@@ -29,30 +36,42 @@ class LoadBalancer:
 		return hash(str(packet.clientid)) % num_servers
 
 	def assign_server_power_of_2_choices_no_memory(self, packet, servers):
-		first_query_server = random.randint(0, len(servers) - 1)
-		second_query_server = random.randint(0, len(servers) - 1)
-		while (first_query_server == second_query_server):
-			second_query_server = random.randint(0, len(servers) - 1)
 
+		#pick 2 servers randomly
+		first_query_server = random.randint(0, num_servers - 1)
+		second_query_server = random.randint(0, num_servers - 1)
+
+		#ensure 2nd server is different from 1st
+		while (first_query_server == second_query_server):
+			second_query_server = random.randint(0, num_servers - 1)
+
+		#get loads of both servers
 		first_query_load = servers[first_query_server].get_load(packet.time_sent)
 		second_query_load = servers[second_query_server].get_load(packet.time_sent)
 
+		#pick server with least load 
 		if first_query_load < second_query_load:
 			return first_query_server
 		return second_query_server
 
 	def assign_server_power_of_2_choices_with_memory(self, packet, servers):
+		#check this is a new flow by checking client id 
 		if packet.clientid in self.connection_table:
 			return self.connection_table[packet.clientid]
 
-		first_query_server = random.randint(0, len(servers) - 1)
-		second_query_server = random.randint(0, len(servers) - 1)
+		#pick 2 servers randomly
+		first_query_server = random.randint(0, num_servers - 1)
+		second_query_server = random.randint(0, num_servers - 1)
+
+		#ensure 2nd server is different from 1st
 		while (first_query_server == second_query_server):
 			second_query_server = random.randint(0, len(servers) - 1)
 
+		#get loads of both servers
 		first_query_load = servers[first_query_server].get_load(packet.time_sent)
 		second_query_load = servers[second_query_server].get_load(packet.time_sent)
 
+		#pick server with least load, and store it in the connection table to ensure future consistency
 		if first_query_load < second_query_load:
 			self.connection_table[packet.clientid] = first_query_server
 			return first_query_server
@@ -132,7 +151,7 @@ def run_plotter(servers, assignment_method):
 		plt.ylabel('Load (Time til finish)')
 		plt.title('Load vs. Time for Servers')
 
-	plt.savefig('plots/' + assignment_method + '/LoadVsTimeForServers.png')
+	plt.savefig('plots/BiggerSystem/' + assignment_method + '/LoadVsTimeForServers.png')
 	plt.clf()
 
 def run_consistency_check(servers):
@@ -194,51 +213,7 @@ def run_simulation(assignment_method):
 for method in assignment_methods:
 	run_simulation(method)
 
-'''
-# Post-Simulation Analysis
-for server in servers:
-	#print(server)
-	times = []
-	loads = []
-	for t in [x/100 for x in range(1, 100)]:
-		load = server.get_load(t)
-		# print("Load at time", t, "is", round(load, 3))
-		times.append(t)
-		loads.append(load)
-	
-	#for making individual plots:
-	#plt.title('Load vs. Time for Server ' + str(server.id))
-	#plt.savefig('plots/3PowersOfTwoWithMemory/LoadVsTimeForServer' + str(server.id) + '.png')
-	#plt.clf()
-	
-	#ax.plot(np.array([x for x in times]), np.array([y for y in loads]), '-b', label=server.id)
 
 	
-	plt.plot(np.array([x for x in times]), np.array([y for y in loads]), label = server.id) # , s=5
-	plt.xlabel('Time')
-	plt.ylabel('Load (Time til finish)')
-	plt.title('Load vs. Time for Servers')
-'''
-	
-
-#ax.axis('equal')
-#leg = ax.legend()
-#plt.savefig('plots/RandomAssignment/LoadVsTimeForServers.png')
-
-'''
-# Per-Flow Consistency Check:
-perFlowConsistent = True
-for server in servers:
-	for otherServer in servers:
-		if server.id != otherServer.id:
-			for packet in server.packet_history:
-				if packet.clientid in [pckt.clientid for pckt in otherServer.packet_history]:
-					perFlowConsistent = False
-					break
-if perFlowConsistent:
-	print("Per-Flow Consistency Maintained")
-else:
-	print("Per-Flow Consistency Not Maintained")
-'''
 
 
