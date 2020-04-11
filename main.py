@@ -11,16 +11,19 @@ processing_time = 0.005 # time per packet
 '''
 
 # Packet generation variables
-num_flows = 1000
+num_flows = 80
 mean_flow_size = 10
 flow_size_stdev = 2
 max_flow_duration = 0.05
 # Num clients, load balancers, servers
-num_clients = 200
+num_clients = 30
 num_load_balancers = 2
-num_servers = 16
+num_servers = 8
 # Server processing time, time per packet
 processing_time = 0.005
+
+#value for powers of x choices
+powers_of_x_value = 3
 
 
 '''
@@ -35,6 +38,7 @@ processing_time = 0.01 # time per packet
 
 
 assignment_methods = ["RandomAssignment", "ConsistentHashing", "PowersOfTwoNoMemory", "PowersOfTwoWithMemory", "PowersOfXWithMemory"]
+powers_of_x = [2, 4, 8]
 
 #class defining a client/host
 class Client:
@@ -48,11 +52,10 @@ class LoadBalancer:
 		self.connection_table = {}
 
 	def assign_server_random(self, packet, _1, _2):
-		packet_id = packet.clientid
 		return random.randint(0, num_servers - 1)
 
 	def assign_server_hashing(self, packet, _1, _2):
-		return hash(str(packet.clientid)) % num_servers
+		return hash((packet.clientid, packet.port_num)) % num_servers
 
 	def assign_server_power_of_2_choices_no_memory(self, packet, servers, _):
 
@@ -74,11 +77,10 @@ class LoadBalancer:
 		return second_query_server
 
 	def assign_server_power_of_2_choices_with_memory(self, packet, servers, _):
-		#check this is a new flow by checking client id 
-		if packet.clientid in self.connection_table:
-			if packet.time_sent - self.connection_table[packet.clientid][1] < max_flow_duration:
-				self.connection_table[packet.clientid][1] = packet.time_sent
-				return self.connection_table[packet.clientid][0]
+		#check this is a new flow by checking header tuple
+		header_tuple = (packet.clientid, packet.port_num)
+		if header_tuple in self.connection_table:
+			return self.connection_table[header_tuple]
 
 		#pick 2 servers randomly
 		first_query_server = random.randint(0, num_servers - 1)
@@ -94,17 +96,16 @@ class LoadBalancer:
 
 		#pick server with least load, and store it in the connection table to ensure future consistency
 		if first_query_load < second_query_load:
-			self.connection_table[packet.clientid] = [first_query_server, packet.time_sent]
+			self.connection_table[header_tuple] = first_query_server
 			return first_query_server
-		self.connection_table[packet.clientid] = [first_query_server, packet.time_sent]
+		self.connection_table[header_tuple] = second_query_server
 		return second_query_server
 
 	def assign_server_power_of_x_choices_with_memory(self, packet, servers, x):
-		#check this is a new flow by checking client id 
-		if packet.clientid in self.connection_table:
-			if packet.time_sent - self.connection_table[packet.clientid][1] < max_flow_duration:
-				self.connection_table[packet.clientid][1] = packet.time_sent
-				return self.connection_table[packet.clientid][0]
+		#check this is a new flow by checking header tuple
+		header_tuple = (packet.clientid, packet.port_num)
+		if header_tuple in self.connection_table:
+			return self.connection_table[header_tuple]
 
 		if x > num_servers:
 			print("Number of servers too low for power of " + str(x) + " choices.")
@@ -116,10 +117,11 @@ class LoadBalancer:
 		for num in server_nums:
 			loads.append(servers[num].get_load(packet.time_sent))
 
-		min_load_server = loads.index(min(loads))
+		min_load_server_id = loads.index(min(loads))
+		min_server_num = server_nums[min_load_server_id]
 
-		self.connection_table[packet.clientid] = [min_load_server, packet.time_sent]
-		return min_load_server
+		self.connection_table[header_tuple] = min_server_num
+		return min_server_num
 
 	def __repr__(self):
 		return "Load Balancer id: " + str(self.id)	
@@ -169,12 +171,13 @@ class Server:
 
 #class defining a packet
 class Packet:
-	def __init__(self, clientid, time_sent):
+	def __init__(self, clientid, port_number,time_sent):
 		self.clientid = clientid
+		self.port_num = port_number
 		self.time_sent = time_sent
 
 	def __repr__(self):
-		return "Packet from client: " + str(self.clientid) + " @time: " + str(round(self.time_sent,3))
+		return "Packet from client: " + str(self.clientid) + "at port: " + str(self.port_num) +  " @time: " + str(round(self.time_sent,3))
 
 def run_plotter(servers, assignment_method):
 	# Post-Simulation Analysis
@@ -192,48 +195,26 @@ def run_plotter(servers, assignment_method):
 		plt.xlabel('Time')
 		plt.ylabel('Load (Time til finish)')
 		plt.title('Load vs. Time for Servers')
-		# plt.axis([0, 1, 0, 1])
+		plt.axis([0, 1, 0, 0.2])
 
 	plt.savefig('plots/SmallSystemWithFlows/' + assignment_method + '/LoadVsTimeForServers.png')
 	plt.clf()
 
 def run_consistency_check(servers):
 	perFlowConsistent = True
-	conflicting_packets = []
 	for server in servers:
 		for otherServer in servers:
 			if server.id != otherServer.id:
-				clients_both_servers = list(set([packet.clientid for packet in server.packet_history]) & set([packet.clientid for packet in otherServer.packet_history]))
-
-				packets_both_servers = []
 				for packet in server.packet_history:
-					packets_both_servers.append([packet.clientid, packet.time_sent, server.id])
-				for packet in otherServer.packet_history:
-					packets_both_servers.append([packet.clientid, packet.time_sent, otherServer.id])
-				packets_both_servers.sort(key=lambda x: x[1], reverse=False)
-
-				for client in clients_both_servers:
-					lastServer = None
-					lastTime = None
-					for packet in packets_both_servers:
-						if packet[0] == client:
-							if lastServer is None:
-								lastServer = packet[2]
-							else:
-								if packet[2] != lastServer:
-									if packet[1] - lastTime < max_flow_duration:
-										perFlowConsistent = False
-										# conflicting_packets.append([(client, lastServer, round(lastTime, 3), round(packet[1], 3), packet[2])])
-										lastServer = packet[2]
-							lastTime = packet[1]
+					if (packet.clientid, packet.port_num) in [(pckt.clientid, pckt.port_num)for pckt in otherServer.packet_history]:
+						perFlowConsistent = False
+						break
 
 	if perFlowConsistent:
 		print("Per-Flow Consistency Maintained")
 	else:
 		print("Per-Flow Consistency Not Maintained")
-		# print("Flow Inconsistent Packets:")
-		# for packet in conflicting_packets:
-		# 	print(packet)
+
 
 
 def run_simulation(assignment_method):
@@ -245,18 +226,12 @@ def run_simulation(assignment_method):
 		num_packets_in_flow = int(np.random.normal(mean_flow_size, flow_size_stdev))
 		client_of_flow = random.randint(0, num_clients-1)
 		time_of_flow = random.random()
+		port_number = random.randint(1024, 65536)
 		for j in range(num_packets_in_flow):
 			time_of_packet = time_of_flow + (random.random() * (max_flow_duration) - max_flow_duration / 2)
-			packet = Packet(client_of_flow, time_of_packet)
+			packet = Packet(client_of_flow, port_number, time_of_packet)
 			packets.append(packet)
 	packets.sort(key=lambda x: x.time_sent, reverse=False)
-
-	# packets = []
-	# for i in range(num_clients):
-	# 	for j in range(packets_per_client):
-	# 		packet = Packet(i, random.random())
-	# 		packets.append(packet)
-	# packets.sort(key=lambda x: x.time_sent, reverse=False)
 
 	load_balancers = []
 	for i in range(num_load_balancers):
@@ -280,13 +255,14 @@ def run_simulation(assignment_method):
 			"PowersOfXWithMemory": load_balancer.assign_server_power_of_x_choices_with_memory # Per-flow consistency :) + Congestion control :) 
 		}
 		func = switcher.get(assignment_method, lambda: "Invalid assignment method")
-		server_id = func(packet, servers, 2)
+		server_id = func(packet, servers, powers_of_x_value)
 		server = servers[server_id]
 		server.add_packet(packet)
 		#print("Load Balancer " + str(lb_id) + " sent packet from client " + str(packet.clientid) + " to server " + str(server_id))
 
 	run_plotter(servers, assignment_method)
-	# run_consistency_check(servers)
+	run_consistency_check(servers)
+	print()
 
 for method in assignment_methods:
 	run_simulation(method)
