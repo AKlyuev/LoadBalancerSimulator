@@ -226,7 +226,7 @@ def run_consistency_check(servers):
 		for otherServer in servers:
 			if server.id != otherServer.id:
 				for packet in server.packet_history:
-					if (packet.clientid, packet.port_num) in [(pckt.clientid, pckt.port_num)for pckt in otherServer.packet_history]:
+					if (packet.clientid, packet.port_num) in [(pckt.clientid, pckt.port_num) for pckt in otherServer.packet_history]:
 						perFlowConsistent = False
 						break
 
@@ -264,8 +264,14 @@ def run_simulation(assignment_method):
 		servers.append(server)
 
 	# Main Simulation Processing Loop
-	for packet in packets:
-		lb_id = packet.clientid % num_load_balancers
+	for i in range(len(packets)):
+		packet = packets[i]
+
+		if i < len(packets)/2:
+			lb_id = packet.clientid % num_load_balancers
+		else: #last load balancer "goes down"
+			lb_id = packet.clientid % (num_load_balancers - 1)
+
 		load_balancer = load_balancers[lb_id]
 		switcher = {
 			"RandomAssignment": load_balancer.assign_server_random,  # No per-flow consistency :(
