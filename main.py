@@ -11,14 +11,14 @@ processing_time = 0.005 # time per packet
 '''
 
 # Packet generation variables
-num_flows = 80
-mean_flow_size = 10
+num_flows = 300
+mean_flow_size = 15
 flow_size_stdev = 2
 max_flow_duration = 0.05
 # Num clients, load balancers, servers
 num_clients = 30
-num_load_balancers = 2
-num_servers = 8
+num_load_balancers = 4
+num_servers = 16
 # Server processing time, time per packet
 processing_time = 0.005
 
@@ -179,7 +179,7 @@ class Packet:
 	def __repr__(self):
 		return "Packet from client: " + str(self.clientid) + "at port: " + str(self.port_num) +  " @time: " + str(round(self.time_sent,3))
 
-def run_plotter(servers, assignment_method):
+def run_load_plotter(servers, assignment_method):
 	# Post-Simulation Analysis
 	for server in servers:
 		#print(server)
@@ -198,6 +198,26 @@ def run_plotter(servers, assignment_method):
 		plt.axis([0, 1, 0, 0.2])
 
 	plt.savefig('plots/SmallSystemWithFlows/' + assignment_method + '/LoadVsTimeForServers.png')
+	plt.clf()
+
+def run_mean_and_stdev_plotter(servers, assignment_method):
+	times = []
+	means = []
+	stdevs = []
+	for t in [x/250 for x in range(1, 250)]:
+		times.append(t)
+		mean = sum([x.get_load(t) for x in servers]) / len(servers)
+		stdev = pow( sum([((x.get_load(t) - mean) ** 2) for x in servers]) / (len(servers) - 1), 1/2)
+		means.append(mean)
+		stdevs.append(stdev)
+		
+	plt.plot(np.array([x for x in times]), np.array([y for y in means]))
+	plt.plot(np.array([x for x in times]), np.array([y for y in stdevs]))
+	plt.xlabel('Time')
+	plt.ylabel('Mean / stdev server load')
+	plt.title('Mean (blue) and Stdev (orange) of Load vs. Time for Servers')
+
+	plt.savefig('plots/SmallSystemWithFlows/' + assignment_method + '/MeanAndStdevLoadVsTimeForServers.png')
 	plt.clf()
 
 def run_consistency_check(servers):
@@ -260,7 +280,8 @@ def run_simulation(assignment_method):
 		server.add_packet(packet)
 		#print("Load Balancer " + str(lb_id) + " sent packet from client " + str(packet.clientid) + " to server " + str(server_id))
 
-	run_plotter(servers, assignment_method)
+	run_load_plotter(servers, assignment_method)
+	run_mean_and_stdev_plotter(servers, assignment_method)
 	run_consistency_check(servers)
 	print()
 
