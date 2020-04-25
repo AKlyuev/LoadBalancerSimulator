@@ -11,16 +11,16 @@ processing_time = 0.005 # time per packet
 '''
 
 # Packet generation variables
-num_flows = 300
+num_flows = 150
 mean_flow_size = 15
 flow_size_stdev = 2
 max_flow_duration = 0.05
 # Num clients, load balancers, servers
-num_clients = 30
+num_clients = 32
 num_load_balancers = 4
-num_servers = 16
+num_servers = 8
 # Server processing time, time per packet
-processing_time = 0.005
+processing_time = 0.004
 
 #value for powers of x choices
 powers_of_x_value = 3
@@ -191,11 +191,12 @@ def run_load_plotter(servers, assignment_method):
 			times.append(t)
 			loads.append(load)
 
-		plt.plot(np.array([x for x in times]), np.array([y for y in loads]), label = server.id) # , s=5
+		plt.plot(np.array([x for x in times]), np.array([y for y in loads]), label=str("Server" + str(server.id))) # , s=5
+		plt.legend(loc="best")
 		plt.xlabel('Time')
 		plt.ylabel('Load (Time til finish)')
 		plt.title('Load vs. Time for Servers')
-		plt.axis([0, 1, 0, 0.2])
+		plt.axis([0, 1, 0, 1])
 
 	plt.savefig('plots/SmallSystemWithFlows/' + assignment_method + '/LoadVsTimeForServers.png')
 	plt.clf()
@@ -211,11 +212,13 @@ def run_mean_and_stdev_plotter(servers, assignment_method):
 		means.append(mean)
 		stdevs.append(stdev)
 		
-	plt.plot(np.array([x for x in times]), np.array([y for y in means]))
-	plt.plot(np.array([x for x in times]), np.array([y for y in stdevs]))
+	plt.plot(np.array([x for x in times]), np.array([y for y in means]), label="mean")
+	plt.plot(np.array([x for x in times]), np.array([y for y in stdevs]), label="stdev")
+	plt.legend(loc="best")
 	plt.xlabel('Time')
 	plt.ylabel('Mean / stdev server load')
-	plt.title('Mean (blue) and Stdev (orange) of Load vs. Time for Servers')
+	plt.title('Mean and Stdev of Load vs. Time for Servers')
+	plt.axis([0, 1, 0, 1])
 
 	plt.savefig('plots/SmallSystemWithFlows/' + assignment_method + '/MeanAndStdevLoadVsTimeForServers.png')
 	plt.clf()
