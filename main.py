@@ -196,7 +196,7 @@ def run_load_plotter(servers, assignment_method):
 		plt.xlabel('Time')
 		plt.ylabel('Load (Time til finish)')
 		plt.title('Load vs. Time for Servers')
-		plt.axis([0, 1, 0, 1])
+		plt.axis([0, 1, 0, 0.6])
 
 	plt.savefig('plots/SmallSystemWithFlows/' + assignment_method + '/LoadVsTimeForServers.png')
 	plt.clf()
@@ -218,7 +218,7 @@ def run_mean_and_stdev_plotter(servers, assignment_method):
 	plt.xlabel('Time')
 	plt.ylabel('Mean / stdev server load')
 	plt.title('Mean and Stdev of Load vs. Time for Servers')
-	plt.axis([0, 1, 0, 1])
+	plt.axis([0, 1, 0, 0.6])
 
 	plt.savefig('plots/SmallSystemWithFlows/' + assignment_method + '/MeanAndStdevLoadVsTimeForServers.png')
 	plt.clf()
@@ -273,7 +273,7 @@ def run_simulation(assignment_method):
 		if i < len(packets)/2:
 			lb_id = packet.clientid % num_load_balancers
 		else: #last load balancer "goes down"
-			lb_id = packet.clientid % (num_load_balancers - 1)
+			lb_id = packet.clientid % (num_load_balancers - 1
 
 		load_balancer = load_balancers[lb_id]
 		switcher = {
