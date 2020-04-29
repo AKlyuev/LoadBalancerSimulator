@@ -23,7 +23,10 @@ num_servers = 8
 processing_time = 0.004
 
 #value for powers of x choices
-powers_of_x_value = 3
+powers_of_x_value = 8
+
+#whether or not a load balancer drops
+LOAD_BALANCER_DROPS = False
 
 
 '''
@@ -270,10 +273,13 @@ def run_simulation(assignment_method):
 	for i in range(len(packets)):
 		packet = packets[i]
 
-		if i < len(packets)/2:
+		if LOAD_BALANCER_DROPS:
+			if i < len(packets)/2:
+				lb_id = packet.clientid % num_load_balancers
+			else: #last load balancer "goes down"
+				lb_id = packet.clientid % (num_load_balancers - 1)
+		else:
 			lb_id = packet.clientid % num_load_balancers
-		else: #last load balancer "goes down"
-			lb_id = packet.clientid % (num_load_balancers - 1
 
 		load_balancer = load_balancers[lb_id]
 		switcher = {
