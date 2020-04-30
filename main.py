@@ -23,21 +23,11 @@ num_servers = 8
 processing_time = 0.004
 
 #value for powers of x choices
-powers_of_x_value = 8
+powers_of_x_value = 3
 
 #whether or not a load balancer drops
 LOAD_BALANCER_DROPS = False
 
-
-'''
-mean_flow_size = 98
-
-num_clients = 1000
-packets_per_client = 10
-num_load_balancers = 10
-num_servers = 100
-processing_time = 0.01 # time per packet
-'''
 
 
 assignment_methods = ["RandomAssignment", "ConsistentHashing", "PowersOfTwoNoMemory", "PowersOfTwoWithMemory", "PowersOfXWithMemory"]
@@ -217,6 +207,13 @@ def run_mean_and_stdev_plotter(servers, assignment_method):
 		
 	plt.plot(np.array([x for x in times]), np.array([y for y in means]), label="mean")
 	plt.plot(np.array([x for x in times]), np.array([y for y in stdevs]), label="stdev")
+
+	avg_mean = sum(means)/len(means)
+	avg_stdev = sum(stdevs)/len(stdevs)
+
+	print("Mean load: %5.3f" % avg_mean)
+	print("Mean standard deviation: %5.3f" % avg_stdev)
+
 	plt.legend(loc="best")
 	plt.xlabel('Time')
 	plt.ylabel('Mean / stdev server load')
